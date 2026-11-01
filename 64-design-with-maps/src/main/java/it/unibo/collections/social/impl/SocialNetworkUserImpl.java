@@ -38,6 +38,7 @@ public final class SocialNetworkUserImpl<U extends User> extends UserImpl implem
      *
      * think of what type of keys and values would best suit the requirements
      */
+    private final Map<String, Set<U>> friends;
 
     /*
      * [CONSTRUCTORS]
@@ -63,24 +64,31 @@ public final class SocialNetworkUserImpl<U extends User> extends UserImpl implem
      *            alias of the user, i.e. the way a user is identified on an
      *            application
      */
-    public SocialNetworkUserImpl(final String name, final String surname, final String user, final int userAge) {
-        super(null, null, null, 0);
+     public SocialNetworkUserImpl(final String name, final String surname, final String user, final int userAge) {
+        super(name, surname, user, userAge);
+        this.friends = new HashMap<>(); // inference of type variables
     }
-
     /*
      * 2) Define a further constructor where the age defaults to -1
      */
+     public SocialNetworkUserImpl(final String name, final String surname, final String user) {
+        this(name, surname, user, -1);
+    }
 
     /*
      * [METHODS]
      *
      * Implements the methods below
      */
-    @Override
+   @Override
     public boolean addFollowedUser(final String circle, final U user) {
-        return false;
+        Set<U> circleFriends = this.friends.get(circle);
+        if (circleFriends == null) {
+            circleFriends = new HashSet<>();
+            this.friends.put(circle, circleFriends);
+        }
+        return circleFriends.add(user);
     }
-
     /**
      *
      * [NOTE] If no group with groupName exists yet, this implementation must
@@ -88,11 +96,28 @@ public final class SocialNetworkUserImpl<U extends User> extends UserImpl implem
      */
     @Override
     public Collection<U> getFollowedUsersInGroup(final String groupName) {
-        return null;
+        final Collection<U> usersInCircle = this.friends.get(groupName);
+        if (usersInCircle != null) {
+            return new ArrayList<>(usersInCircle);
+        }
+        /*
+         * Return a very fast, unmodifiable, pre-cached empty list.
+         */
+        return Collections.emptyList();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public List<U> getFollowedUsers() {
-        return null;
+        /*
+         * Pre-populate a Set in order to prevent duplicates
+         */
+        final Set<U> followedUsers = new HashSet<>();
+        for (final Set<U> group : friends.values()) {
+            followedUsers.addAll(group);
+        }
+        return new ArrayList<>(followedUsers);
     }
 }
